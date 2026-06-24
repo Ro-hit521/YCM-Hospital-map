@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Hospital Navigation Demo</title>
+<title>Hospital Navigation</title>
 
 <style>
+
 body{
     font-family:Arial;
-    text-align:center;
     margin:0;
     background:#f5f5f5;
+    text-align:center;
 }
 
 .header{
@@ -20,117 +21,246 @@ body{
     padding:15px;
 }
 
-.container{
-    max-width:1000px;
-    margin:auto;
-    padding:15px;
-}
-
-.map{
+#map{
     width:100%;
-    border:1px solid #ccc;
+    max-width:1000px;
+    height:650px;
+    margin:auto;
+    background:white;
+    position:relative;
 }
 
-.info{
-    background:white;
-    padding:15px;
-    margin-bottom:10px;
-    border-radius:8px;
+.room{
+    position:absolute;
+    border:2px solid black;
+    background:#fafafa;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+.corridor{
+    position:absolute;
+    background:#d0d0d0;
+}
+
+.marker{
+    position:absolute;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    z-index:999;
+}
+
+.current{
+    background:green;
+}
+
+.destination{
+    background:red;
+}
+
+#line{
+    position:absolute;
+    z-index:998;
 }
 
 select,button{
     padding:10px;
-    margin:5px;
+    margin:10px;
 }
+
 </style>
 </head>
 
 <body>
 
 <div class="header">
-<h2>🏥 District Hospital Navigation</h2>
+<h2>🏥 YCM Hospital Navigation</h2>
 </div>
 
-<div class="container">
-
-<div class="info">
-
-<p>
-📍 Current Location:
-<b id="currentLocation"></b>
-</p>
+<h3>
+📍 You Are Here:
+<span id="currentLocation"></span>
+</h3>
 
 <select id="destination">
+
 <option value="">Select Destination</option>
-<option value="ICU">ICU</option>
-<option value="Pharmacy">Pharmacy</option>
-<option value="Billing">Billing</option>
-<option value="Medicine OPD">Medicine OPD</option>
-<option value="Ortho OPD">Ortho OPD</option>
+<option value="pharmacy">Pharmacy</option>
+<option value="billing">Billing</option>
+<option value="mjpjay">MJPJAY</option>
+<option value="ortho">Ortho OPD</option>
+<option value="medicine">Medicine OPD</option>
+<option value="icu">ICU</option>
+
 </select>
 
-<button onclick="showRoute()">Show Route</button>
+<button onclick="showRoute()">
+Show Route
+</button>
 
+<div id="map">
+
+<svg id="line" width="1000" height="650"></svg>
+
+<div id="currentMarker" class="marker current"></div>
+<div id="destinationMarker" class="marker destination"></div>
+
+<div class="room"
+style="left:50px;top:50px;width:180px;height:100px;">
+Pharmacy
 </div>
 
-<img src="floor1.png" class="map">
+<div class="room"
+style="left:400px;top:50px;width:180px;height:100px;">
+Billing
+</div>
 
-<div id="result"></div>
+<div class="room"
+style="left:750px;top:50px;width:180px;height:100px;">
+MJPJAY
+</div>
+
+<div class="corridor"
+style="left:0;top:280px;width:1000px;height:60px;">
+</div>
+
+<div class="room"
+style="left:50px;top:450px;width:180px;height:100px;">
+Ortho OPD
+</div>
+
+<div class="room"
+style="left:400px;top:450px;width:180px;height:100px;">
+Medicine OPD
+</div>
+
+<div class="room"
+style="left:750px;top:450px;width:180px;height:100px;">
+ICU
+</div>
 
 </div>
 
 <script>
 
-const params = new URLSearchParams(window.location.search);
+const locations = {
+
+pharmacy:{
+x:140,
+y:100,
+name:"Pharmacy"
+},
+
+billing:{
+x:490,
+y:100,
+name:"Billing"
+},
+
+mjpjay:{
+x:840,
+y:100,
+name:"MJPJAY"
+},
+
+ortho:{
+x:140,
+y:500,
+name:"Ortho OPD"
+},
+
+medicine:{
+x:490,
+y:500,
+name:"Medicine OPD"
+},
+
+icu:{
+x:840,
+y:500,
+name:"ICU"
+}
+
+};
+
+const params =
+new URLSearchParams(window.location.search);
 
 const current =
-params.get("from") || "Ortho OPD";
+params.get("from") || "ortho";
 
-document.getElementById("currentLocation").innerText =
-current;
+document.getElementById("currentLocation")
+.innerText =
+locations[current].name;
+
+const currentMarker =
+document.getElementById("currentMarker");
+
+currentMarker.style.left =
+locations[current].x + "px";
+
+currentMarker.style.top =
+locations[current].y + "px";
 
 function showRoute(){
 
-let destination =
+const dest =
 document.getElementById("destination").value;
 
-if(destination===""){
+if(!dest){
 alert("Select destination");
 return;
 }
 
-document.getElementById("result").innerHTML = `
-<div style="
-background:white;
-margin-top:20px;
-padding:20px;
-border-radius:8px;
-">
+const start =
+locations[current];
 
-<h3>Route</h3>
+const end =
+locations[dest];
 
-<p>
-🟢 ${current}
-</p>
+const destMarker =
+document.getElementById("destinationMarker");
 
-<p>
-⬇
-</p>
+destMarker.style.left =
+end.x + "px";
 
-<p>
-🔵 Follow Main Corridor
-</p>
+destMarker.style.top =
+end.y + "px";
 
-<p>
-⬇
-</p>
+const svg =
+document.getElementById("line");
 
-<p>
-🔴 ${destination}
-</p>
+svg.innerHTML = `
 
-</div>
+<line
+x1="${start.x}"
+y1="${start.y}"
+x2="${start.x}"
+y2="310"
+stroke="blue"
+stroke-width="6"/>
+
+<line
+x1="${start.x}"
+y1="310"
+x2="${end.x}"
+y2="310"
+stroke="blue"
+stroke-width="6"/>
+
+<line
+x1="${end.x}"
+y1="310"
+x2="${end.x}"
+y2="${end.y}"
+stroke="blue"
+stroke-width="6"/>
+
 `;
+
 }
 
 </script>
